@@ -18,6 +18,6 @@ pip3 install requests bs4
 
 `python3 dontpady.py`
 
-First input asks for dontpad's address
-Second one means if you want to clear or not actual page ('s'==yes | 'n'==no)
-Third one is finally your text
+- First input asks for dontpad's address
+- Second one means if you want to clear or not actual page ('s'==yes | 'n'==no)
+- Third one is finally your text
