@@ -17,8 +17,9 @@ pip3 install requests bs4
 ## Interface usage
 
 - First input asks for dontpad's address
-- Second one means if you want to clear or not actual page ('s'==yes | 'n'==no)
-- Third one is finally your text
+- Then asks if you want to see atual content
+- Third one means if you want to clear or not atual page
+- And last one is finally your new text
 
 ### Command line usage:
 
