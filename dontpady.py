@@ -1,3 +1,4 @@
+import argparse
 from sys import argv
 from requests import post,get
 from bs4 import BeautifulSoup
@@ -8,73 +9,79 @@ def pull(path):
     old_text = soup.find('textarea').get_text()
     return old_text
 
-def push(path, clear, text):
-    
-    if not clear:
-        old_text = pull(path)
-        text = old_text+'\n\n'+text
-
+def push(path, text):
     data = {'text':text}
-    
-    return True if '200' in str(post(url=path, data=data)) else False
 
-if len(argv) == 1:
-    path = 'http://dontpad.com/'+input('dontpad.com/')
-    print('\nText on',path,'\n\n'+pull(path),'\n') if ord(input('Print atual text? y/n: '))%2 else False
-    clear = True if ord(input('Clear atual text? y/n: '))%2 else False
-    text = input('New text to input: ')
+    return post(url=path, data=data)
 
-    if push(path,clear,text):
-        print('Finished')
+# Some random url validation
+def validateUrl(url):
+    if(url.startswith("dontpad.com")):
+        url = url.replace("dontpad.com/", "")
+        url =url.replace("dontpad.com", "")
+    if(url.startswith("https://dontpad.com")):
+        url = url.replace("https://dontpad.com/", "")
+        url = url.replace("https://dontpad.com", "")
+    if(url.startswith("http://dontpad.com")):
+        url = url.replace("http://dontpad.com/", "")
+        url = url.replace("http://dontpad.com", "")
+    return 'http://dontpad.com/' + url
+
+# Get text from file or from user input
+def getText(inputUser, filePath):
+    text = ''
+    if(filePath != None):
+        try:
+            with open(filePath, 'r') as file:
+                for line in file:
+                    text += line
+        except IOError as ex:
+            print("I/O error ({}): {}".format(ex.errno, ex.strerror))
+            exit()
+        except:
+            print("Unexpected error: ", sys.exc_info()[0])
+            exit()
+    elif(inputUser != None):
+        text = input('Enter the text: ')
+
+    return text
+
+# Build the text to be sent
+def buildText(inputUser, filePath, clear, url):
+    text = getText(inputUser, filePath)
+    if(not clear):
+        link = get(url)
+        soup = BeautifulSoup(link.text,"html.parser")
+        old_text = soup.find('textarea').get_text()
+        text = old_text + "\n" + text
+    return text
+
+def main(args):
+    # Validate URL
+    url = validateUrl(args.url)
+
+    # Build text
+    text = buildText(args.input, args.file, args.clear, url)
+
+    # Send text
+    response = push(url, text)
+
+    if str(response.status_code).startswith("20"):
+        if(args.output):
+            print(pull(url))
+        else:
+            print('Success: {}'.format(url))
     else:
         print('Error')
 
-else:
-    if argv[1] == '-i' or argv[1] == '--input':
-        if '-c' in argv:
-            path  = 'http://dontpad.com/'+argv[3]
-            clear = True
-            text  = input() if len(argv)==4  else argv[4]
-        else:
-            path  = 'http://dontpad.com/'+argv[2]
-            clear = False
-            text  = input() if len(argv)==3  else argv[3]
-        if push(path,clear,text):
-            print('Finished')
-        else:
-            print('Error')
+if __name__ == "__main__":
+    # Args parser
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-f", "--file", help="File path")
+    parser.add_argument("-i", "--input", type=str, help="Input text from user")
+    parser.add_argument("-c", "--clear", action="store_true", help = "Clear the page before put the new content")
+    parser.add_argument("-o", "--output", action="store_true", help = "Print actual text in dontpad address")
+    parser.add_argument("url", type = str, help = "Dontpad's address")
+    args = parser.parse_args()
 
-    elif argv[1] == '-o' or argv[1] == '--output':
-        path = 'http://dontpad.com/'+argv[2]
-        clear = True if '-c' or '--clear' in argv else False
-        print(pull(path))
-
-    elif argv[1] == '-c' or argv[1] == '--clear':
-        path  = 'http://dontpad.com/'+argv[2]
-        clear = True
-        text  = ''
-        if push(path,clear,text):
-            print('Finished')
-        else:
-            print('Error')
-
-    elif argv[1] == '-h' or argv[1] == '--help':
-        print('usage: dontpady.y [-h | --help] [-i | --input <path> <text>]\n',
-            '[-o | --ouput <path>] [-c | --clear <path>]\n')
-        print('Common uses:')
-        print("Update text erasing atual text")
-        print("    dontpady.py -i -c test_path 'Testing text'")
-        print("Append new text at end of atual text")
-        print("    dontpady.py -i test_path 'Testing text'")
-        print("Input text from file")
-        print("    dontpady.py -i test_path < file")
-        print("Just print atual text")
-        print("    dontpady.py -o test_path")
-        print("Save atual text in file")
-        print("    dontpady.py -o test_path > file")
-        print("Just clear atual text")
-        print("    dontpady.py -c test_path")
-
-    else:
-        print('Unknown option\n\nusage: dontpady.y [-h | --help] [-i | --input <path> <text>]\n',+
-            '[-o | --ouput <path>] [-c | --clear <path>]\n\nmade by github.com/vgasparini')
+    main(args)
